@@ -1,0 +1,68 @@
+# ================================================================
+# ICSE 2026 Result Checker — GitHub Actions Autonomous Agent
+# ================================================================
+# This workflow deploys an "agent" on GitHub's free infrastructure
+# that autonomously checks results.cisce.org at 11 AM IST on
+# April 30, 2026 and sends you a Telegram notification.
+# 
+# YOU DO NOT NEED TO KEEP YOUR LAPTOP ON.
+# ================================================================
+
+name: ICSE Result Checker Agent
+
+on:
+  # Manual trigger (use this to TEST your setup tonight!)
+  workflow_dispatch:
+
+  # Scheduled trigger: April 30, 2026 at 10:45 AM IST (5:15 UTC)
+  # GitHub Actions cron is in UTC. IST = UTC + 5:30
+  # We start 15 minutes early in case results release early.
+  schedule:
+    - cron: '15 5 30 4 *'
+
+jobs:
+  check-results:
+    name: Check ICSE Results
+    runs-on: ubuntu-latest
+    timeout-minutes: 180  # 3 hour safety limit
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Run Result Checker Agent
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          UID: ${{ secrets.UID }}
+          INDEX_NUMBER: ${{ secrets.INDEX_NUMBER }}
+          COURSE_CODE: ${{ secrets.COURSE_CODE }}
+        run: |
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║     ICSE 2026 RESULT CHECKER AGENT — DEPLOYED              ║"
+          echo "║     Running on GitHub's infrastructure                       ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "Target: April 30, 2026 @ 11:00 AM IST"
+          echo "Current UTC: $(date -u +"%Y-%m-%d %H:%M:%S")"
+          echo "Current IST: $(TZ=Asia/Kolkata date +"%Y-%m-%d %H:%M:%S")"
+          echo ""
+          python src/check_results.py
+
+      - name: Upload logs artifact (if needed)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-checker-logs
+          path: |
+            *.log
