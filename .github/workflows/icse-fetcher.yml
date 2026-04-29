@@ -1,0 +1,75 @@
+# ================================================================
+# ICSE 2026 Result Fetcher — FULLY AGENTIC with Human-in-the-Loop
+# ================================================================
+# This agent opens a REAL browser on GitHub's servers, fills your
+# credentials, captures the CAPTCHA, sends it to your Telegram, waits
+# for your 5-second reply, submits the form, scrapes your FULL
+# marksheet, and sends every subject + mark back to you.
+#
+# WORKFLOW:
+#   1. Auto-start at 10:45 AM IST on April 30, 2026
+#   2. Open results.cisce.org in headless Chromium
+#   3. Fill UID + Index Number + Course
+#   4. Screenshot CAPTCHA → send to Telegram
+#   5. Poll Telegram for your CAPTCHA reply (up to 15 min)
+#   6. Enter CAPTCHA, click "Show Result"
+#   7. Wait for result page, scrape subject-wise marks
+#   8. Send formatted marksheet to Telegram
+# ================================================================
+
+name: ICSE Result Fetcher Agent
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 5 30 4 *'
+
+jobs:
+  fetch-results:
+    name: Fetch ICSE Results from CISCE Portal
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies + Playwright
+        run: |
+          pip install requests beautifulsoup4 playwright
+          playwright install chromium
+
+      - name: Run Result Fetcher Agent
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          UID: ${{ secrets.UID }}
+          INDEX_NUMBER: ${{ secrets.INDEX_NUMBER }}
+          COURSE_CODE: ${{ secrets.COURSE_CODE }}
+        run: |
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  ICSE 2026 RESULT FETCHER — AGENTIC MODE                   ║"
+          echo "║  Browser automation + Human-in-the-loop CAPTCHA            ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "Target: April 30, 2026 @ 11:00 AM IST"
+          echo "Current IST: $(TZ=Asia/Kolkata date +"%Y-%m-%d %H:%M:%S")"
+          echo ""
+          python src/fetch_results.py
+
+      - name: Upload screenshots + logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-fetcher-artifacts
+          path: |
+            *.png
+            *.jpg
+            *.log
+            *.txt
